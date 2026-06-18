@@ -2,18 +2,30 @@
 BEAT THE RISK — Multiplayer Edition
 ─────────────────────────────────────────────────────────────────
 A synchronous, multiplayer credit risk simulation.
-Shared state lives on JSONBin.io (no installs/downloads required).
+Shared state lives on Supabase (free, no request limits).
 
 SETUP:
-1. Create a free account at https://jsonbin.io
-2. Click "Create Bin" with content like {"initialized": true}, note the BIN_ID
-3. Grab your "X-Master-Key" from your account
-4. In Streamlit Cloud > App > Settings > Secrets, paste:
+1. Create a free account at https://supabase.com (sign in with GitHub)
+2. Create a new project, then open the SQL Editor and run:
 
-    JSONBIN_BIN_ID = "your-bin-id"
-    JSONBIN_API_KEY = "your-master-key"
+    create table game_state (
+      id text primary key default 'singleton',
+      data jsonb not null default '{}'::jsonb,
+      updated_at timestamptz default now()
+    );
+    insert into game_state (id, data)
+    values ('singleton', '{"initialized": true}'::jsonb);
 
-5. Push this file to a GitHub repo and deploy it on Streamlit Community Cloud.
+3. Go to Project Settings → API and copy:
+   - Project URL  (https://xxxx.supabase.co)
+   - anon public key
+
+4. In Streamlit Cloud → App → Settings → Secrets, paste:
+
+    SUPABASE_URL = "https://xxxx.supabase.co"
+    SUPABASE_KEY = "your-anon-public-key"
+
+5. Push this file to GitHub and deploy on Streamlit Community Cloud.
 """
 
 import streamlit as st
@@ -330,34 +342,50 @@ def streak_award(streak_count):
     return award
 
 # ═══════════════════════════════════════════════════════════════════════
-# SHARED STATE BACKEND (JSONBin.io)
+# SHARED STATE BACKEND (Supabase)
 # ═══════════════════════════════════════════════════════════════════════
 def get_secrets():
     try:
-        return st.secrets["JSONBIN_BIN_ID"], st.secrets["JSONBIN_API_KEY"]
+        return st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"]
     except Exception:
         return None, None
 
-JSONBIN_BIN_ID, JSONBIN_API_KEY = get_secrets()
-JSONBIN_URL = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}" if JSONBIN_BIN_ID else None
+SUPABASE_URL, SUPABASE_KEY = get_secrets()
+
+def _headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
 
 def remote_read():
-    if not JSONBIN_URL:
+    if not SUPABASE_URL:
         return None
     try:
-        r = requests.get(JSONBIN_URL + "/latest", headers={"X-Master-Key": JSONBIN_API_KEY}, timeout=5)
+        url = f"{SUPABASE_URL}/rest/v1/game_state?id=eq.singleton&select=data"
+        r = requests.get(url, headers=_headers(), timeout=5)
         r.raise_for_status()
-        return r.json().get("record", {})
+        rows = r.json()
+        if rows:
+            return rows[0]["data"]
+        return {}
     except Exception as e:
         st.session_state["_backend_error"] = str(e)
         return None
 
 def remote_write(data):
-    if not JSONBIN_URL:
+    if not SUPABASE_URL:
         return False
     try:
-        r = requests.put(JSONBIN_URL, headers={"X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json"},
-                          data=json.dumps(data), timeout=5)
+        from datetime import datetime, timezone
+        url = f"{SUPABASE_URL}/rest/v1/game_state?id=eq.singleton"
+        payload = json.dumps({
+            "data": data,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        })
+        r = requests.patch(url, headers=_headers(), data=payload, timeout=5)
         r.raise_for_status()
         return True
     except Exception as e:
@@ -397,7 +425,7 @@ if "show_streak_award" not in st.session_state:
 # ═══════════════════════════════════════════════════════════════════════
 # BACKEND CHECK
 # ═══════════════════════════════════════════════════════════════════════
-if not JSONBIN_URL:
+if not SUPABASE_URL or not SUPABASE_KEY:
     st.markdown("""
     <div class="apex-header"><div class="header-left">
         <div class="hsbc-mark">HSBC</div><div class="brand-divider"></div>
@@ -405,9 +433,8 @@ if not JSONBIN_URL:
     </div></div>
     """, unsafe_allow_html=True)
     st.error(
-        "⚠️ **Shared database connection is not configured.**\n\n"
-        "For this app's multiplayer mode to work, you need to add **Secrets** "
-        "in Streamlit Cloud: `JSONBIN_BIN_ID` and `JSONBIN_API_KEY`.\n\n"
+        "⚠️ **Database connection is not configured.**\n\n"
+        "Add `SUPABASE_URL` and `SUPABASE_KEY` to your Streamlit Cloud Secrets.\n\n"
         "See the comment block at the top of the code file for setup steps."
     )
     st.stop()
@@ -433,7 +460,7 @@ def merge_with_defaults(fetched):
     return base
 
 now = time.time()
-if st.session_state.remote_state is None or now - st.session_state.last_fetch >= 4:
+if st.session_state.remote_state is None or now - st.session_state.last_fetch >= 3:
     fetched = remote_read()
     if fetched is not None:
         merged = merge_with_defaults(fetched)
@@ -521,7 +548,7 @@ if not host_present and not is_host:
     </div>
     """, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;font-family:\"Space Mono\",monospace;font-size:9px;letter-spacing:1.5px;color:var(--slate-dim);'>· auto-refreshing ·</div>", unsafe_allow_html=True)
-    time.sleep(4)
+    time.sleep(3)
     st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -769,5 +796,5 @@ else:
 # AUTO-REFRESH (polling)
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown("<div style='text-align:center;padding:1.4rem 0 0.4rem;font-family:\"Space Mono\",monospace;font-size:9px;letter-spacing:1.5px;color:var(--slate-dim);'>· auto-refreshing ·</div>", unsafe_allow_html=True)
-time.sleep(4)
+time.sleep(3)
 st.rerun()
