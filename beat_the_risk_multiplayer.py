@@ -205,6 +205,55 @@ st.markdown("""
         color: var(--slate); margin-top: 0.3rem;
     }
 
+    /* ═══════════════════════ MARKET EVENT BANNER ═══════════════════════ */
+    .event-banner {
+        border-radius: 4px; padding: 0.9rem 1.4rem; margin-bottom: 1.1rem;
+        display: flex; align-items: center; gap: 0.9rem;
+        animation: streak-pop 0.4s ease;
+    }
+    .event-banner.bad { background: rgba(184,69,58,0.10); border: 1px solid rgba(184,69,58,0.35); }
+    .event-banner.good { background: rgba(63,122,92,0.10); border: 1px solid rgba(63,122,92,0.35); }
+    .event-icon { font-size: 1.5rem; line-height: 1; }
+    .event-text { flex: 1; }
+    .event-headline {
+        font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.05rem; letter-spacing: 0.2px; margin: 0;
+    }
+    .event-banner.bad .event-headline { color: var(--red); }
+    .event-banner.good .event-headline { color: var(--green); }
+    .event-detail {
+        font-family: 'Inter', sans-serif; font-size: 12px; color: var(--slate); margin-top: 2px;
+    }
+    .event-tag {
+        font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+        padding: 4px 9px; border-radius: 2px; white-space: nowrap;
+    }
+    .event-banner.bad .event-tag { color: var(--red); background: rgba(184,69,58,0.12); }
+    .event-banner.good .event-tag { color: var(--green); background: rgba(63,122,92,0.12); }
+
+    /* ═══════════════════════ REVEAL BANNER ═══════════════════════ */
+    .reveal-banner {
+        border-radius: 4px; padding: 1.5rem 1.8rem; margin-bottom: 1.2rem; text-align: center;
+        animation: reveal-drop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    @keyframes reveal-drop { from { opacity: 0; transform: scale(0.94) translateY(-8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .reveal-banner.default { background: rgba(184,69,58,0.10); border: 1px solid rgba(184,69,58,0.4); }
+    .reveal-banner.repaid { background: rgba(63,122,92,0.10); border: 1px solid rgba(63,122,92,0.4); }
+    .reveal-outcome {
+        font-family: 'Fraunces', serif; font-weight: 700; font-style: italic; font-size: 1.8rem; margin: 0;
+        letter-spacing: 0.3px;
+    }
+    .reveal-banner.default .reveal-outcome { color: var(--red); }
+    .reveal-banner.repaid .reveal-outcome { color: var(--green); }
+    .reveal-meta {
+        font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.5px; color: var(--slate);
+        margin-top: 0.5rem;
+    }
+    .reveal-names {
+        font-family: 'Inter', sans-serif; font-size: 12px; color: var(--cream); margin-top: 0.7rem;
+        line-height: 1.5;
+    }
+    .reveal-names b { color: var(--gold); }
+
     h1, h2, h3 { font-family: 'Fraunces', serif !important; color: var(--cream) !important; }
     input[type="text"] {
         background: var(--panel-raised) !important; border: 1px solid var(--hairline-bright) !important;
@@ -300,9 +349,10 @@ def generate_company(seed=None):
     c.update(derive_financial_metrics(rng, c))
     return c
 
-def compute_round_fate(company, company_seed):
+def compute_round_fate(company, company_seed, event=None):
     """Single dice roll per round — determines whether THIS company defaults this round.
-    Every player who approves shares this same fate. Deterministic given the company_seed."""
+    Every player who approves shares this same fate. Deterministic given the company_seed.
+    A market event targeting this company's sector shifts the odds up or down."""
     rng = random.Random(company_seed)
     pd_val = company['pd']
     if pd_val < 0.05: threshold = 0.05
@@ -314,7 +364,48 @@ def compute_round_fate(company, company_seed):
     if company['coverage'] in ['Weak (1-1.5x)', 'Critical (<1x)']: threshold *= 1.15
     if company['profitability'] in ['Weak (0-5%)', 'Loss Making']: threshold *= 1.1
     if company['previous_defaults'] > 0: threshold *= (1 + company['previous_defaults'] * 0.15)
-    return rng.random() < min(threshold, 0.95)
+    # Market event impact (only if it targets this company's sector)
+    if event and event.get("sector") == company["sector"]:
+        threshold *= event.get("multiplier", 1.0)
+    return rng.random() < min(max(threshold, 0.01), 0.95)
+
+# Market events: each targets a sector and shifts default odds.
+# multiplier > 1 = bad news (riskier), < 1 = good news (opportunity).
+MARKET_EVENTS = [
+    {"sector": "Energy", "multiplier": 1.6, "tone": "bad",
+     "headline": "Oil Price Crash", "detail": "Energy sector loans are significantly riskier this round."},
+    {"sector": "Real Estate", "multiplier": 1.5, "tone": "bad",
+     "headline": "Interest Rates Spike", "detail": "Real Estate borrowers face higher default risk this round."},
+    {"sector": "Technology", "multiplier": 1.5, "tone": "bad",
+     "headline": "Tech Bubble Jitters", "detail": "Technology valuations tumble — defaults more likely this round."},
+    {"sector": "Manufacturing", "multiplier": 1.4, "tone": "bad",
+     "headline": "Supply Chain Shock", "detail": "Manufacturing margins squeezed — higher risk this round."},
+    {"sector": "Financial Services", "multiplier": 1.5, "tone": "bad",
+     "headline": "Credit Market Freeze", "detail": "Financial Services under stress — defaults more likely."},
+    {"sector": "Healthcare", "multiplier": 1.35, "tone": "bad",
+     "headline": "Regulatory Crackdown", "detail": "Healthcare borrowers hit by new regulation this round."},
+    {"sector": "Technology", "multiplier": 0.55, "tone": "good",
+     "headline": "AI Investment Boom", "detail": "Capital floods into Technology — defaults much less likely."},
+    {"sector": "Energy", "multiplier": 0.6, "tone": "good",
+     "headline": "Energy Price Rally", "detail": "Energy revenues surge — these loans are safer this round."},
+    {"sector": "Healthcare", "multiplier": 0.6, "tone": "good",
+     "headline": "Breakthrough Approvals", "detail": "Healthcare sector thrives — lower default risk this round."},
+    {"sector": "Real Estate", "multiplier": 0.65, "tone": "good",
+     "headline": "Housing Demand Surge", "detail": "Real Estate booms — safer lending this round."},
+    {"sector": "Manufacturing", "multiplier": 0.65, "tone": "good",
+     "headline": "Export Orders Boom", "detail": "Manufacturing demand soars — lower risk this round."},
+    {"sector": "Financial Services", "multiplier": 0.6, "tone": "good",
+     "headline": "Market Rally", "detail": "Financial Services profits jump — safer loans this round."},
+]
+
+EVENT_PROBABILITY = 0.35  # roughly 1 in 3 rounds gets a market event
+
+def maybe_generate_event(seed):
+    """Returns a market event dict (or None) deterministically from the seed."""
+    rng = random.Random(seed * 7 + 13)
+    if rng.random() < EVENT_PROBABILITY:
+        return rng.choice(MARKET_EVENTS)
+    return None
 
 def resolve_decision(company, decision, defaulted):
     """Applies the round's shared fate to one player's decision."""
@@ -399,6 +490,8 @@ def default_game_state():
         "company_seed": None,
         "company": None,
         "round_defaulted": False,
+        "event": None,              # current round's market event (or None)
+        "last_reveal": None,        # snapshot of previous round's outcome for the reveal banner
         "locked": False,
         "host": HOST_NAME,
         "players": {},
@@ -573,7 +666,9 @@ if game["round"] == 0:
                 latest["round"] = 1
                 latest["company_seed"] = random.randint(1, 10**9)
                 latest["company"] = generate_company(latest["company_seed"])
-                latest["round_defaulted"] = compute_round_fate(latest["company"], latest["company_seed"])
+                latest["event"] = maybe_generate_event(latest["company_seed"])
+                latest["round_defaulted"] = compute_round_fate(latest["company"], latest["company_seed"], latest["event"])
+                latest["last_reveal"] = None
                 latest["locked"] = False
                 ok = remote_write(latest)
                 if ok:
@@ -605,10 +700,49 @@ elif game["round"] <= MAX_ROUNDS:
     rnd = game["round"]
     me = game["players"][player_name]
     already_decided = str(rnd) in me["decisions"]
+    event = game.get("event")
+
+    # ── Reveal banner: show the previous round's outcome once, when a new round opens ──
+    reveal = game.get("last_reveal")
+    if reveal and st.session_state.get("_seen_reveal_round") != reveal.get("round"):
+        st.session_state["_seen_reveal_round"] = reveal.get("round")
+        defaulted = reveal.get("defaulted", False)
+        outcome_cls = "default" if defaulted else "repaid"
+        outcome_txt = "Loan Defaulted" if defaulted else "Loan Repaid"
+        n_app = len(reveal.get("approvers", []))
+        n_rej = len(reveal.get("rejecters", []))
+        if defaulted:
+            names_line = f"<b>{n_app}</b> approved (took the loss) · <b>{n_rej}</b> rejected (dodged it)" if (n_app or n_rej) else ""
+        else:
+            names_line = f"<b>{n_app}</b> approved (earned interest) · <b>{n_rej}</b> rejected (missed out)" if (n_app or n_rej) else ""
+        st.markdown(f"""
+        <div class="reveal-banner {outcome_cls}">
+            <p class="reveal-outcome">{outcome_txt}</p>
+            <div class="reveal-meta">Round {reveal.get('round')} · {reveal.get('sector','—')} · ${reveal.get('amount',0):,.0f}</div>
+            <div class="reveal-names">{names_line}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        time.sleep(2.5)
+        st.rerun()
 
     pd_val = company['pd']
     pd_color = '#3f7a5c' if pd_val < 0.05 else '#a8732e' if pd_val < 0.10 else '#c9763a' if pd_val < 0.20 else '#b8453a'
     pd_fill = min(pd_val / 0.4 * 100, 100)
+
+    # ── Market event banner (if this round has an event) ──
+    if event:
+        tone = event.get("tone", "bad")
+        icon = "⚠" if tone == "bad" else "▲"
+        st.markdown(f"""
+        <div class="event-banner {tone}">
+            <span class="event-icon">{icon}</span>
+            <div class="event-text">
+                <p class="event-headline">{event.get('headline','')}</p>
+                <div class="event-detail">{event.get('detail','')}</div>
+            </div>
+            <span class="event-tag">{event.get('sector','')}</span>
+        </div>
+        """, unsafe_allow_html=True)
 
     col_main, col_side = st.columns([1.6, 1], gap="large")
 
@@ -729,13 +863,32 @@ elif game["round"] <= MAX_ROUNDS:
             if st.button(next_label, type="primary", use_container_width=True):
                 latest = remote_read()
                 latest = merge_with_defaults(latest) if latest is not None else game
+                # Snapshot the round that just finished, for the reveal banner everyone sees
+                finishing_company = latest.get("company") or {}
+                reveal = {
+                    "round": rnd,
+                    "sector": finishing_company.get("sector", "—"),
+                    "amount": finishing_company.get("loan_amount", 0),
+                    "defaulted": latest.get("round_defaulted", False),
+                    "interest_rate": finishing_company.get("interest_rate", 0),
+                    "approvers": [],
+                    "rejecters": [],
+                }
+                for pname, pdata in latest.get("players", {}).items():
+                    dec = pdata.get("decisions", {}).get(str(rnd))
+                    if dec == "approve":
+                        reveal["approvers"].append(pname)
+                    elif dec == "reject":
+                        reveal["rejecters"].append(pname)
                 if rnd < MAX_ROUNDS:
                     latest["round"] = rnd + 1
                     latest["company_seed"] = random.randint(1, 10**9)
                     latest["company"] = generate_company(latest["company_seed"])
-                    latest["round_defaulted"] = compute_round_fate(latest["company"], latest["company_seed"])
+                    latest["event"] = maybe_generate_event(latest["company_seed"])
+                    latest["round_defaulted"] = compute_round_fate(latest["company"], latest["company_seed"], latest["event"])
                 else:
                     latest["round"] = MAX_ROUNDS + 1
+                latest["last_reveal"] = reveal
                 latest["locked"] = False
                 ok = remote_write(latest)
                 if ok:
