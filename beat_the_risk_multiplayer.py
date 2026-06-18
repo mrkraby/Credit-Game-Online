@@ -555,6 +555,17 @@ if game["round"] == 0:
                     st.rerun()
                 else:
                     st.error("Could not start the game — failed to write to the server. Please try again.")
+            st.markdown("<div style='height:0.6rem;'></div>", unsafe_allow_html=True)
+            if st.button("Reset Lobby", type="secondary", use_container_width=True):
+                new_state = default_game_state()
+                ok = remote_write(new_state)
+                if ok:
+                    st.session_state.remote_state = new_state
+                    st.session_state.last_fetch = time.time()
+                    st.session_state.player_name = ""
+                    st.rerun()
+                else:
+                    st.error("Could not reset the lobby — failed to write to the server. Please try again.")
         else:
             st.markdown(f"<div class='waiting-badge'>Waiting for {HOST_NAME} to start the game...</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
