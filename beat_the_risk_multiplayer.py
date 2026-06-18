@@ -36,76 +36,159 @@ st.set_page_config(
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;500&display=swap');
 
     :root {
-        --void: #141414; --surface: #1c1c1c; --panel: #222222;
-        --border: rgba(255,255,255,0.07); --border-bright: rgba(255,255,255,0.13);
-        --accent: #e8ff47; --accent-dim: rgba(232,255,71,0.08); --accent-glow: rgba(232,255,71,0.25);
-        --red: #ff4757; --green: #2ed573; --orange: #ffa502; --blue: #1e90ff;
-        --text: #ededed; --muted: #6b7280; --subtle: #333333;
+        --ink: #0d0d0f;
+        --panel: #16161a;
+        --panel-raised: #1c1c21;
+        --hairline: rgba(245,240,232,0.09);
+        --hairline-bright: rgba(245,240,232,0.16);
+        --gold: #c9a961;
+        --gold-dim: rgba(201,169,97,0.10);
+        --gold-glow: rgba(201,169,97,0.35);
+        --cream: #f5f0e8;
+        --slate: #8b94a0;
+        --slate-dim: #565c66;
+        --red: #d4574a;
+        --green: #5a9b7e;
+        --amber: #c98a3e;
     }
     * { box-sizing: border-box; }
-    .stApp { background: var(--void) !important; font-family: 'DM Sans', sans-serif !important; }
+    .stApp { background: var(--ink) !important; font-family: 'Inter', sans-serif !important; }
     #MainMenu, footer, header { visibility: hidden; }
     .stDeployButton { display: none; }
     [data-testid="stToolbar"] { display: none; }
-    .block-container { padding: 1rem 2rem !important; max-width: 100% !important; }
+    .block-container { padding: 1.2rem 2.2rem !important; max-width: 1400px !important; margin: 0 auto !important; }
 
-    .apex-header {
-        background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-        padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 1.2rem;
+    /* Faint ledger-line texture across the whole app */
+    .stApp::before {
+        content: '';
+        position: fixed; inset: 0; pointer-events: none; z-index: 0;
+        background-image: repeating-linear-gradient(
+            to bottom, transparent 0, transparent 39px, rgba(245,240,232,0.025) 40px
+        );
     }
-    .header-left { display: flex; align-items: center; gap: 1.5rem; }
-    .hsbc-mark { background: #DB0011; color: white; font-family: 'Syne', sans-serif; font-weight: 800;
-        font-size: 13px; letter-spacing: 2px; padding: 5px 12px; border-radius: 4px; }
-    .brand-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--text);
-        letter-spacing: 2.5px; text-transform: uppercase; }
-    .brand-name span { color: var(--accent); }
-    .round-pill { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--accent);
-        background: var(--accent-dim); border: 1px solid rgba(232,255,71,0.2); padding: 5px 14px;
-        border-radius: 100px; letter-spacing: 1px; text-transform: uppercase; }
-    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green);
-        box-shadow: 0 0 8px var(--green); display: inline-block; margin-right: 6px;
-        animation: pulse-dot 2s ease infinite; }
-    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
 
-    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
-    .panel-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px;
-        text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+    /* ═══════════════════════ HEADER ═══════════════════════ */
+    .apex-header {
+        background: var(--panel);
+        border: 1px solid var(--hairline);
+        border-radius: 4px;
+        padding: 1.1rem 2rem;
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 1.1rem;
+        position: relative;
+    }
+    .apex-header::after {
+        content: '';
+        position: absolute; left: 2rem; right: 2rem; bottom: -1px; height: 1px;
+        background: linear-gradient(90deg, transparent, var(--gold-glow), transparent);
+        opacity: 0.5;
+    }
+    .header-left { display: flex; align-items: center; gap: 1.4rem; }
+    .hsbc-mark {
+        background: #f5f0e8; color: #B8121E;
+        font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; letter-spacing: 1.5px;
+        padding: 5px 11px; border-radius: 2px;
+    }
+    .brand-divider { width: 1px; height: 22px; background: var(--hairline-bright); }
+    .brand-name {
+        font-family: 'Fraunces', serif; font-weight: 600; font-size: 19px; color: var(--cream);
+        letter-spacing: 0.5px; font-style: italic;
+    }
+    .brand-name b { font-style: normal; color: var(--gold); font-weight: 700; }
+    .round-pill {
+        font-family: 'Space Mono', monospace; font-size: 10.5px; font-weight: 500; color: var(--gold);
+        background: var(--gold-dim); border: 1px solid rgba(201,169,97,0.25);
+        padding: 5px 13px; border-radius: 2px; letter-spacing: 1.5px; text-transform: uppercase;
+    }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+        box-shadow: 0 0 6px var(--green); display: inline-block; margin-right: 7px;
+        animation: pulse-dot 2.4s ease infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.45;} }
+    .player-tag { font-family: 'Space Mono', monospace; font-size: 10.5px; color: var(--slate);
+        letter-spacing: 0.5px; }
+    .player-tag .host-star { color: var(--gold); }
 
-    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden; margin-top: 1rem; }
-    .data-cell { background: var(--panel); padding: 1rem 1.3rem; }
-    .cell-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-    .cell-value { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--text); }
-    .cell-value.highlight { color: var(--accent); }
+    /* ═══════════════════════ PANELS ═══════════════════════ */
+    .panel {
+        background: var(--panel); border: 1px solid var(--hairline); border-radius: 4px; padding: 1.7rem;
+    }
+    .panel-title {
+        font-family: 'Space Mono', monospace; font-size: 9.5px; letter-spacing: 2.2px; text-transform: uppercase;
+        color: var(--slate-dim); margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
+
+    /* ═══════════════════════ DATA GRID ═══════════════════════ */
+    .data-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hairline);
+        border-radius: 3px; overflow: hidden; margin-top: 0.4rem; border: 1px solid var(--hairline);
+    }
+    .data-cell { background: var(--panel); padding: 1.05rem 1.4rem; }
+    .cell-label {
+        font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase;
+        color: var(--slate-dim); margin-bottom: 5px;
+    }
+    .cell-value { font-family: 'Fraunces', serif; font-size: 1.02rem; font-weight: 500; color: var(--cream); font-variant-numeric: tabular-nums; }
+    .cell-value.highlight { color: var(--gold); }
     .cell-value.good { color: var(--green); } .cell-value.bad { color: var(--red); }
 
-    .pd-track { height: 4px; background: var(--subtle); border-radius: 4px; overflow: hidden; margin-top: 0.6rem; }
-    .pd-fill { height: 100%; border-radius: 4px; }
+    /* ═══════════════════════ PD METER ═══════════════════════ */
+    .pd-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .pd-track { height: 2px; background: var(--hairline-bright); border-radius: 0; overflow: hidden; margin-top: 0.7rem; }
+    .pd-fill { height: 100%; }
 
-    .leaderboard-row { display: grid; grid-template-columns: 28px 1fr 100px 90px; gap: 0.8rem; align-items: center;
-        padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 12px; }
-    .leaderboard-row.me { background: var(--accent-dim); border-radius: 6px; }
-    .lb-rank { color: var(--muted); }
-    .lb-name { color: var(--text); font-weight: 500; }
-    .lb-cap { color: var(--text); text-align: right; }
+    /* ═══════════════════════ LEADERBOARD ═══════════════════════ */
+    .leaderboard-row {
+        display: grid; grid-template-columns: 26px 1fr 110px 84px; gap: 0.9rem; align-items: center;
+        padding: 0.65rem 0.4rem; border-bottom: 1px solid var(--hairline);
+        font-family: 'Space Mono', monospace; font-size: 11.5px;
+    }
+    .leaderboard-row:last-child { border-bottom: none; }
+    .leaderboard-row.me { background: var(--gold-dim); border-radius: 2px; padding-left: 0.7rem; margin: 0 -0.4rem; }
+    .lb-rank { color: var(--slate-dim); }
+    .lb-name { color: var(--cream); font-family: 'Inter', sans-serif; font-weight: 500; }
+    .lb-cap { text-align: right; font-variant-numeric: tabular-nums; }
     .lb-cap.pos { color: var(--green); } .lb-cap.neg { color: var(--red); }
-    .lb-status { text-align: center; font-size: 9px; letter-spacing: 1px; padding: 2px 6px; border-radius: 4px; }
-    .lb-waiting { color: var(--orange); background: rgba(255,165,2,0.1); }
-    .lb-done { color: var(--green); background: rgba(46,213,115,0.1); }
+    .lb-status { text-align: center; font-size: 8.5px; letter-spacing: 1px; padding: 2px 5px; border-radius: 2px; }
+    .lb-waiting { color: var(--amber); background: rgba(201,138,62,0.1); }
+    .lb-done { color: var(--green); background: rgba(90,155,126,0.1); }
 
-    .stButton > button { font-family: 'Syne', sans-serif !important; font-weight: 700 !important; font-size: 12px !important;
-        letter-spacing: 2px !important; text-transform: uppercase !important; border-radius: 8px !important; height: 48px !important; border: none !important; }
-    .stButton > button[kind="primary"] { background: var(--accent) !important; color: var(--void) !important; }
-    .stButton > button[kind="primary"]:hover { background: #f0ff6e !important; }
-    .stButton > button[kind="secondary"] { background: transparent !important; color: var(--muted) !important; border: 1px solid var(--border-bright) !important; }
+    /* ═══════════════════════ BUTTONS ═══════════════════════ */
+    .stButton > button {
+        font-family: 'Fraunces', serif !important; font-weight: 600 !important; font-size: 13px !important;
+        letter-spacing: 1.2px !important; text-transform: uppercase !important; border-radius: 2px !important;
+        height: 50px !important; border: 1px solid transparent !important; transition: all 0.25s ease !important;
+    }
+    .stButton > button[kind="primary"] {
+        background: var(--gold) !important; color: var(--ink) !important; box-shadow: none !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: #ddc07f !important; box-shadow: 0 4px 20px var(--gold-glow) !important; transform: translateY(-1px);
+    }
+    .stButton > button[kind="secondary"] {
+        background: transparent !important; color: var(--slate) !important; border: 1px solid var(--hairline-bright) !important;
+    }
+    .stButton > button[kind="secondary"]:hover {
+        border-color: rgba(212,87,74,0.4) !important; color: var(--red) !important; background: rgba(212,87,74,0.05) !important;
+    }
 
-    .waiting-badge { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--orange); background: rgba(255,165,2,0.08);
-        border: 1px solid rgba(255,165,2,0.2); padding: 8px 16px; border-radius: 8px; text-align: center; }
-    .locked-badge { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--green); background: rgba(46,213,115,0.08);
-        border: 1px solid rgba(46,213,115,0.2); padding: 8px 16px; border-radius: 8px; text-align: center; }
+    .waiting-badge, .locked-badge {
+        font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.5px;
+        padding: 10px 18px; border-radius: 2px; text-align: center;
+    }
+    .waiting-badge { color: var(--amber); background: rgba(201,138,62,0.08); border: 1px solid rgba(201,138,62,0.2); }
+    .locked-badge { color: var(--green); background: rgba(90,155,126,0.08); border: 1px solid rgba(90,155,126,0.2); }
+
+    /* ═══════════════════════ TEXT ELEMENTS ═══════════════════════ */
+    h1, h2, h3 { font-family: 'Fraunces', serif !important; color: var(--cream) !important; }
+    input[type="text"] {
+        background: var(--panel-raised) !important; border: 1px solid var(--hairline-bright) !important;
+        color: var(--cream) !important; border-radius: 2px !important; font-family: 'Inter', sans-serif !important;
+    }
+    .stAlert { border-radius: 2px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -153,11 +236,10 @@ def generate_company(seed=None):
     c['interest_rate'] = round(RISK_FREE_RATE + c['pd'] * 2, 4)
     return c
 
-def resolve_decision(company, decision, player_seed):
-    """Returns (outcome, capital_delta) for an approve/reject decision. Deterministic per player+round via seed."""
-    if decision == 'reject':
-        return 'rejected', 0
-    rng = random.Random(player_seed)
+def compute_round_fate(company, company_seed):
+    """Single dice roll per round — determines whether THIS company defaults this round.
+    Every player who approves shares this same fate. Deterministic given the company_seed."""
+    rng = random.Random(company_seed)
     pd_val = company['pd']
     if pd_val < 0.05: threshold = 0.05
     elif pd_val < 0.10: threshold = 0.25
@@ -168,7 +250,12 @@ def resolve_decision(company, decision, player_seed):
     if company['coverage'] in ['Weak (1-1.5x)', 'Critical (<1x)']: threshold *= 1.15
     if company['profitability'] in ['Weak (0-5%)', 'Loss Making']: threshold *= 1.1
     if company['previous_defaults'] > 0: threshold *= (1 + company['previous_defaults'] * 0.15)
-    defaulted = rng.random() < min(threshold, 0.95)
+    return rng.random() < min(threshold, 0.95)
+
+def resolve_decision(company, decision, defaulted):
+    """Applies the round's shared fate to one player's decision."""
+    if decision == 'reject':
+        return 'rejected', 0
     if defaulted:
         return 'default', -company['loan_amount']
     else:
@@ -215,6 +302,7 @@ def default_game_state():
         "max_rounds": MAX_ROUNDS,
         "company_seed": None,
         "company": None,
+        "round_defaulted": False,   # the shared fate for the current round (set once when round starts)
         "locked": False,            # host can lock a round to stop late decisions
         "host": None,
         "players": {},              # name -> {capital, portfolio[], decisions:{round: 'approve'/'reject'}}
@@ -242,7 +330,8 @@ if "remote_state" not in st.session_state:
 if not JSONBIN_URL:
     st.markdown("""
     <div class="apex-header"><div class="header-left">
-        <div class="hsbc-mark">HSBC</div><div class="brand-name">BEAT THE <span>RISK</span></div>
+        <div class="hsbc-mark">HSBC</div><div class="brand-divider"></div>
+        <div class="brand-name">Beat the <b>Risk</b></div>
     </div></div>
     """, unsafe_allow_html=True)
     st.error(
@@ -287,14 +376,20 @@ game = st.session_state.remote_state
 if not st.session_state.player_name:
     st.markdown("""
     <div class="apex-header"><div class="header-left">
-        <div class="hsbc-mark">HSBC</div><div class="brand-name">BEAT THE <span>RISK</span></div>
-    </div><span class="round-pill">MULTIPLAYER LOBBY</span></div>
+        <div class="hsbc-mark">HSBC</div><div class="brand-divider"></div>
+        <div class="brand-name">Beat the <b>Risk</b></div>
+    </div><span class="round-pill">Lobi</span></div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='panel' style='max-width:420px;margin:3rem auto;text-align:center;'>", unsafe_allow_html=True)
-    st.markdown("<div class='panel-title'>Oyuna Katıl</div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class='panel' style='max-width:440px;margin:3.5rem auto 0;text-align:center;padding:2.4rem 2rem;'>
+        <div class='panel-title' style='justify-content:center;'><span style='flex:none;'>Krediye Giriş</span></div>
+        <p style='font-family:Inter,sans-serif;font-size:13px;color:var(--slate);margin:0 0 1.4rem;'>
+            Risk komitesine katılmak için adınızı girin.
+        </p>
+    """, unsafe_allow_html=True)
     name_input = st.text_input("Adınızı girin", placeholder="örn. Ahmet K.", label_visibility="collapsed")
-    join = st.button("OYUNA KATIL →", type="primary", use_container_width=True)
+    join = st.button("Oyuna Katıl", type="primary", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
     if join and name_input.strip():
@@ -322,11 +417,12 @@ st.markdown(f"""
 <div class="apex-header">
     <div class="header-left">
         <div class="hsbc-mark">HSBC</div>
-        <div class="brand-name">BEAT THE <span>RISK</span></div>
+        <div class="brand-divider"></div>
+        <div class="brand-name">Beat the <b>Risk</b></div>
     </div>
-    <div style="display:flex;align-items:center;gap:1rem;">
-        <span class="round-pill"><span class="live-dot"></span>ROUND {round_display} / {MAX_ROUNDS}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">{player_name} {'★ HOST' if is_host else ''}</span>
+    <div style="display:flex;align-items:center;gap:1.1rem;">
+        <span class="round-pill"><span class="live-dot"></span>Round {round_display} / {MAX_ROUNDS}</span>
+        <span class="player-tag">{player_name} {'<span class=\"host-star\">★ HOST</span>' if is_host else ''}</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -340,17 +436,18 @@ if game["round"] == 0:
         st.markdown("<div class='panel'>", unsafe_allow_html=True)
         st.markdown("<div class='panel-title'>Lobi — Oyuncular Bekleniyor</div>", unsafe_allow_html=True)
         for p in game["players"]:
-            tag = " ★ HOST" if p == game["host"] else ""
-            st.markdown(f"<div style='font-family:DM Mono,monospace;padding:6px 0;color:var(--text);'>● {p}{tag}</div>", unsafe_allow_html=True)
+            tag = " <span style='color:var(--gold);'>★ HOST</span>" if p == game["host"] else ""
+            st.markdown(f"<div style='font-family:Inter,sans-serif;font-size:14px;padding:7px 0;color:var(--cream);'>· {p}{tag}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
         st.markdown("<div class='panel'>", unsafe_allow_html=True)
         st.markdown("<div class='panel-title'>Host Kontrolü</div>", unsafe_allow_html=True)
         if is_host:
-            if st.button("🚀 OYUNU BAŞLAT", type="primary", use_container_width=True):
+            if st.button("Oyunu Başlat", type="primary", use_container_width=True):
                 game["round"] = 1
                 game["company_seed"] = random.randint(1, 10**9)
                 game["company"] = generate_company(game["company_seed"])
+                game["round_defaulted"] = compute_round_fate(game["company"], game["company_seed"])
                 game["locked"] = False
                 remote_write(game)
                 st.session_state.remote_state = game
@@ -377,7 +474,7 @@ elif game["round"] <= MAX_ROUNDS:
     with col_main:
         st.markdown(f"""
         <div class="panel">
-            <div class="panel-title">{SECTORS[company['sector']]['icon']} Kredi Başvurusu — {company['sector']} ({company['size']} Cap)</div>
+            <div class="panel-title">Kredi Başvurusu · {company['sector']} · {company['size']} Cap</div>
             <div class="data-grid">
                 <div class="data-cell"><div class="cell-label">Tutar</div><div class="cell-value highlight">${company['loan_amount']:,.0f}</div></div>
                 <div class="data-cell"><div class="cell-label">Vade</div><div class="cell-value">{company['maturity']} ay</div></div>
@@ -388,27 +485,28 @@ elif game["round"] <= MAX_ROUNDS:
                 <div class="data-cell"><div class="cell-label">Karlılık</div><div class="cell-value">{company['profitability']}</div></div>
                 <div class="data-cell"><div class="cell-label">Önceki Temerrüt</div><div class="cell-value {'good' if company['previous_defaults']==0 else 'bad'}">{company['previous_defaults']}</div></div>
             </div>
-            <div style="margin-top:1.2rem;">
-                <div style="display:flex;justify-content:space-between;"><span class="cell-label">TEMERRÜT OLASILIĞI (PD)</span>
-                <span style="font-family:'Syne',sans-serif;font-weight:800;color:{pd_color};">{pd_val*100:.2f}%</span></div>
+            <div style="margin-top:1.4rem;">
+                <div class="pd-row"><span class="cell-label">Temerrüt Olasılığı</span>
+                <span style="font-family:'Fraunces',serif;font-weight:600;font-size:1.3rem;color:{pd_color};font-variant-numeric:tabular-nums;">{pd_val*100:.2f}%</span></div>
                 <div class="pd-track"><div class="pd-fill" style="width:{pd_fill}%;background:{pd_color};"></div></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div style='height:1.1rem;'></div>", unsafe_allow_html=True)
 
         if game["locked"]:
-            st.markdown("<div class='locked-badge'>🔒 Bu round kilitlendi. Sonuçlar host tarafından açıklanacak.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='locked-badge'>Bu round kilitlendi — sonuçlar host tarafından açıklanacak</div>", unsafe_allow_html=True)
         elif already_decided:
             decision_made = me["decisions"][str(rnd)]
-            st.markdown(f"<div class='locked-badge'>✓ Kararınız kaydedildi: <b>{decision_made.upper()}</b>. Diğer oyuncular bekleniyor...</div>", unsafe_allow_html=True)
+            label = "Onayladınız" if decision_made == "approve" else "Reddettiniz"
+            st.markdown(f"<div class='locked-badge'>Kararınız kaydedildi — <b>{label}</b>. Diğer oyuncular bekleniyor.</div>", unsafe_allow_html=True)
         else:
             b1, b2 = st.columns(2)
             with b1:
-                approve_clicked = st.button("✓ ONAYLA", type="primary", use_container_width=True, key=f"app_{rnd}")
+                approve_clicked = st.button("Onayla", type="primary", use_container_width=True, key=f"app_{rnd}")
             with b2:
-                reject_clicked = st.button("✗ REDDET", type="secondary", use_container_width=True, key=f"rej_{rnd}")
+                reject_clicked = st.button("Reddet", type="secondary", use_container_width=True, key=f"rej_{rnd}")
 
             if approve_clicked or reject_clicked:
                 decision = "approve" if approve_clicked else "reject"
@@ -416,8 +514,8 @@ elif game["round"] <= MAX_ROUNDS:
                 latest = remote_read() or game
                 latest_me = latest["players"].setdefault(player_name, {"capital": INITIAL_CAPITAL, "portfolio": [], "decisions": {}})
                 if str(rnd) not in latest_me["decisions"]:
-                    player_seed = hash((player_name, rnd, latest.get("company_seed"))) % (2**31)
-                    outcome, delta = resolve_decision(company, decision, player_seed)
+                    shared_fate = latest.get("round_defaulted", False)
+                    outcome, delta = resolve_decision(company, decision, shared_fate)
                     latest_me["decisions"][str(rnd)] = decision
                     latest_me["capital"] += delta
                     latest_me["portfolio"].append({
@@ -431,7 +529,7 @@ elif game["round"] <= MAX_ROUNDS:
 
     with col_side:
         st.markdown("<div class='panel'>", unsafe_allow_html=True)
-        st.markdown("<div class='panel-title'>🏆 Canlı Sıralama</div>", unsafe_allow_html=True)
+        st.markdown("<div class='panel-title'>Canlı Sıralama</div>", unsafe_allow_html=True)
         ranked = sorted(game["players"].items(), key=lambda kv: kv[1]["capital"], reverse=True)
         for i, (pname, pdata) in enumerate(ranked, 1):
             delta = pdata["capital"] - INITIAL_CAPITAL
@@ -441,7 +539,7 @@ elif game["round"] <= MAX_ROUNDS:
             row_cls = "leaderboard-row me" if pname == player_name else "leaderboard-row"
             st.markdown(f"""
             <div class="{row_cls}">
-                <span class="lb-rank">#{i}</span>
+                <span class="lb-rank">{i:02d}</span>
                 <span class="lb-name">{pname}</span>
                 <span class="lb-cap {cap_cls}">${pdata['capital']:,.0f}</span>
                 {status_html}
@@ -450,17 +548,18 @@ elif game["round"] <= MAX_ROUNDS:
         st.markdown("</div>", unsafe_allow_html=True)
 
         if is_host:
-            st.markdown("<br><div class='panel'>", unsafe_allow_html=True)
+            st.markdown("<div style='height:1.1rem;'></div><div class='panel'>", unsafe_allow_html=True)
             st.markdown("<div class='panel-title'>Host Kontrolü</div>", unsafe_allow_html=True)
             n_decided = sum(1 for p in game["players"].values() if str(rnd) in p["decisions"])
             n_total = len(game["players"])
-            st.markdown(f"<div style='font-family:DM Mono,monospace;font-size:12px;color:var(--muted);margin-bottom:0.8rem;'>{n_decided}/{n_total} oyuncu karar verdi</div>", unsafe_allow_html=True)
-            next_label = "SONRAKI ROUND →" if rnd < MAX_ROUNDS else "OYUNU BİTİR 🏁"
+            st.markdown(f"<div style='font-family:\"Space Mono\",monospace;font-size:12px;color:var(--slate);margin-bottom:0.9rem;'>{n_decided} / {n_total} oyuncu karar verdi</div>", unsafe_allow_html=True)
+            next_label = "Sonraki Round" if rnd < MAX_ROUNDS else "Oyunu Bitir"
             if st.button(next_label, type="primary", use_container_width=True):
                 if rnd < MAX_ROUNDS:
                     game["round"] += 1
                     game["company_seed"] = random.randint(1, 10**9)
                     game["company"] = generate_company(game["company_seed"])
+                    game["round_defaulted"] = compute_round_fate(game["company"], game["company_seed"])
                 else:
                     game["round"] = MAX_ROUNDS + 1
                 game["locked"] = False
@@ -473,22 +572,26 @@ elif game["round"] <= MAX_ROUNDS:
 # GAME OVER — final leaderboard
 # ═══════════════════════════════════════════════════════════════════════
 else:
-    st.markdown("<div style='text-align:center;padding:2rem 0;'>", unsafe_allow_html=True)
-    st.markdown("<div class='panel-title'>FİNAL SONUÇLAR</div>", unsafe_allow_html=True)
-    st.markdown("<h1 style='font-family:Syne;color:var(--text);'>GAME <span style='color:var(--accent);'>OVER</span></h1>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='text-align:center;padding:2.5rem 0 1.8rem;'>
+        <div class='panel-title' style='justify-content:center;'><span style='flex:none;'>Final Sonuçlar</span></div>
+        <h1 style='font-family:Fraunces,serif;font-weight:300;font-style:italic;font-size:3rem;color:var(--cream);margin:0.3rem 0;'>
+            Oyun <span style='font-weight:700;font-style:normal;color:var(--gold);'>Tamamlandı</span>
+        </h1>
+    </div>
+    """, unsafe_allow_html=True)
 
     ranked = sorted(game["players"].items(), key=lambda kv: kv[1]["capital"], reverse=True)
-    st.markdown("<div class='panel' style='max-width:700px;margin:0 auto;'>", unsafe_allow_html=True)
+    st.markdown("<div class='panel' style='max-width:680px;margin:0 auto;'>", unsafe_allow_html=True)
     for i, (pname, pdata) in enumerate(ranked, 1):
         delta = pdata["capital"] - INITIAL_CAPITAL
         delta_pct = delta / INITIAL_CAPITAL * 100
         cap_cls = "pos" if delta >= 0 else "neg"
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"#{i}"
+        rank_style = "color:var(--gold);font-weight:700;" if i == 1 else ""
         row_cls = "leaderboard-row me" if pname == player_name else "leaderboard-row"
         st.markdown(f"""
-        <div class="{row_cls}" style="grid-template-columns: 40px 1fr 140px 90px;">
-            <span class="lb-rank">{medal}</span>
+        <div class="{row_cls}" style="grid-template-columns: 36px 1fr 140px 90px;">
+            <span class="lb-rank" style="{rank_style}">{i:02d}</span>
             <span class="lb-name">{pname}</span>
             <span class="lb-cap {cap_cls}">${pdata['capital']:,.0f}</span>
             <span class="lb-cap {cap_cls}">{delta_pct:+.1f}%</span>
@@ -497,8 +600,8 @@ else:
     st.markdown("</div>", unsafe_allow_html=True)
 
     if is_host:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("↺ YENİ OYUN BAŞLAT", type="primary", use_container_width=True):
+        st.markdown("<div style='height:1.3rem;'></div>", unsafe_allow_html=True)
+        if st.button("Yeni Oyun Başlat", type="primary", use_container_width=True):
             new_state = default_game_state()
             new_state["host"] = game["host"]
             for pname in game["players"]:
@@ -510,6 +613,6 @@ else:
 # ═══════════════════════════════════════════════════════════════════════
 # AUTO-REFRESH (polling) — keeps everyone's screen in sync
 # ═══════════════════════════════════════════════════════════════════════
-st.markdown("<div style='text-align:center;padding:1rem 0;font-family:DM Mono,monospace;font-size:9px;color:var(--muted);'>otomatik yenileniyor...</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center;padding:1.4rem 0 0.4rem;font-family:\"Space Mono\",monospace;font-size:9px;letter-spacing:1.5px;color:var(--slate-dim);'>· otomatik yenileniyor ·</div>", unsafe_allow_html=True)
 time.sleep(2.5)
 st.rerun()
