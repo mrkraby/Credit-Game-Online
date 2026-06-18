@@ -254,12 +254,27 @@ if not JSONBIN_URL:
     st.stop()
 
 # Fetch remote state (throttled)
+def merge_with_defaults(fetched):
+    """Ensure all required keys exist, even if the bin was pre-seeded with placeholder content."""
+    base = default_game_state()
+    if not isinstance(fetched, dict):
+        return base
+    base.update(fetched)
+    # players must be a dict even if missing/None in fetched data
+    if not isinstance(base.get("players"), dict):
+        base["players"] = {}
+    return base
+
 now = time.time()
 if st.session_state.remote_state is None or now - st.session_state.last_fetch > 2:
     fetched = remote_read()
     if fetched is not None:
-        st.session_state.remote_state = fetched if fetched else default_game_state()
+        merged = merge_with_defaults(fetched)
+        st.session_state.remote_state = merged
         st.session_state.last_fetch = now
+        # If the bin didn't have our keys yet, persist the proper structure now
+        if merged != fetched:
+            remote_write(merged)
     elif st.session_state.remote_state is None:
         st.error("Sunucuya bağlanılamadı. Lütfen sayfayı yenileyin.")
         st.stop()
