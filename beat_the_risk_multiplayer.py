@@ -39,20 +39,20 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;500&display=swap');
 
     :root {
-        --ink: #0d0d0f;
-        --panel: #16161a;
-        --panel-raised: #1c1c21;
-        --hairline: rgba(245,240,232,0.09);
-        --hairline-bright: rgba(245,240,232,0.16);
-        --gold: #c9a961;
-        --gold-dim: rgba(201,169,97,0.10);
-        --gold-glow: rgba(201,169,97,0.35);
-        --cream: #f5f0e8;
-        --slate: #8b94a0;
-        --slate-dim: #565c66;
-        --red: #d4574a;
-        --green: #5a9b7e;
-        --amber: #c98a3e;
+        --ink: #ece7dd;
+        --panel: #f7f4ee;
+        --panel-raised: #fffdf9;
+        --hairline: rgba(40,35,25,0.10);
+        --hairline-bright: rgba(40,35,25,0.18);
+        --gold: #9c7a35;
+        --gold-dim: rgba(156,122,53,0.09);
+        --gold-glow: rgba(156,122,53,0.30);
+        --cream: #211d15;
+        --slate: #6b6457;
+        --slate-dim: #9a9285;
+        --red: #b8453a;
+        --green: #3f7a5c;
+        --amber: #a8732e;
     }
     * { box-sizing: border-box; }
     .stApp { background: var(--ink) !important; font-family: 'Inter', sans-serif !important; }
@@ -88,7 +88,9 @@ st.markdown("""
     }
     .header-left { display: flex; align-items: center; gap: 1.4rem; }
     .hsbc-mark {
-        background: #f5f0e8; color: #B8121E;
+        background: #ffffff; color: #B8121E;
+        box-shadow: 0 1px 3px rgba(40,35,25,0.12);
+    
         font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; letter-spacing: 1.5px;
         padding: 5px 11px; border-radius: 2px;
     }
@@ -444,14 +446,20 @@ if game["round"] == 0:
         st.markdown("<div class='panel-title'>Host Kontrolü</div>", unsafe_allow_html=True)
         if is_host:
             if st.button("Oyunu Başlat", type="primary", use_container_width=True):
-                game["round"] = 1
-                game["company_seed"] = random.randint(1, 10**9)
-                game["company"] = generate_company(game["company_seed"])
-                game["round_defaulted"] = compute_round_fate(game["company"], game["company_seed"])
-                game["locked"] = False
-                remote_write(game)
-                st.session_state.remote_state = game
-                st.rerun()
+                latest = remote_read()
+                latest = merge_with_defaults(latest) if latest is not None else game
+                latest["round"] = 1
+                latest["company_seed"] = random.randint(1, 10**9)
+                latest["company"] = generate_company(latest["company_seed"])
+                latest["round_defaulted"] = compute_round_fate(latest["company"], latest["company_seed"])
+                latest["locked"] = False
+                ok = remote_write(latest)
+                if ok:
+                    st.session_state.remote_state = latest
+                    st.session_state.last_fetch = time.time()
+                    st.rerun()
+                else:
+                    st.error("Oyun başlatılamadı — sunucuya yazılamadı. Lütfen tekrar deneyin.")
         else:
             st.markdown("<div class='waiting-badge'>Host'un oyunu başlatması bekleniyor...</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -555,17 +563,23 @@ elif game["round"] <= MAX_ROUNDS:
             st.markdown(f"<div style='font-family:\"Space Mono\",monospace;font-size:12px;color:var(--slate);margin-bottom:0.9rem;'>{n_decided} / {n_total} oyuncu karar verdi</div>", unsafe_allow_html=True)
             next_label = "Sonraki Round" if rnd < MAX_ROUNDS else "Oyunu Bitir"
             if st.button(next_label, type="primary", use_container_width=True):
+                latest = remote_read()
+                latest = merge_with_defaults(latest) if latest is not None else game
                 if rnd < MAX_ROUNDS:
-                    game["round"] += 1
-                    game["company_seed"] = random.randint(1, 10**9)
-                    game["company"] = generate_company(game["company_seed"])
-                    game["round_defaulted"] = compute_round_fate(game["company"], game["company_seed"])
+                    latest["round"] = rnd + 1
+                    latest["company_seed"] = random.randint(1, 10**9)
+                    latest["company"] = generate_company(latest["company_seed"])
+                    latest["round_defaulted"] = compute_round_fate(latest["company"], latest["company_seed"])
                 else:
-                    game["round"] = MAX_ROUNDS + 1
-                game["locked"] = False
-                remote_write(game)
-                st.session_state.remote_state = game
-                st.rerun()
+                    latest["round"] = MAX_ROUNDS + 1
+                latest["locked"] = False
+                ok = remote_write(latest)
+                if ok:
+                    st.session_state.remote_state = latest
+                    st.session_state.last_fetch = time.time()
+                    st.rerun()
+                else:
+                    st.error("Round güncellenemedi — sunucuya yazılamadı. Lütfen tekrar deneyin.")
             st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -602,13 +616,19 @@ else:
     if is_host:
         st.markdown("<div style='height:1.3rem;'></div>", unsafe_allow_html=True)
         if st.button("Yeni Oyun Başlat", type="primary", use_container_width=True):
+            latest = remote_read()
+            latest = merge_with_defaults(latest) if latest is not None else game
             new_state = default_game_state()
-            new_state["host"] = game["host"]
-            for pname in game["players"]:
+            new_state["host"] = latest["host"]
+            for pname in latest["players"]:
                 ensure_player(new_state, pname)
-            remote_write(new_state)
-            st.session_state.remote_state = new_state
-            st.rerun()
+            ok = remote_write(new_state)
+            if ok:
+                st.session_state.remote_state = new_state
+                st.session_state.last_fetch = time.time()
+                st.rerun()
+            else:
+                st.error("Yeni oyun başlatılamadı — sunucuya yazılamadı. Lütfen tekrar deneyin.")
 
 # ═══════════════════════════════════════════════════════════════════════
 # AUTO-REFRESH (polling) — keeps everyone's screen in sync
