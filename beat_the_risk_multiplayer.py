@@ -200,6 +200,7 @@ st.markdown("""
 INITIAL_CAPITAL = 10_000_000
 MAX_ROUNDS = 8
 RISK_FREE_RATE = 0.05
+HOST_NAME = "Anıl K"   # bu isim her zaman host'tur — kim ne zaman girerse girsin değişmez
 
 SECTORS = {
     'Technology': {'base_pd': 0.03, 'beta': 1.3, 'icon': '◈'},
@@ -306,7 +307,7 @@ def default_game_state():
         "company": None,
         "round_defaulted": False,   # the shared fate for the current round (set once when round starts)
         "locked": False,            # host can lock a round to stop late decisions
-        "host": None,
+        "host": HOST_NAME,  # artık sabit — bilgi amaçlı saklanır, is_host hesaplaması HOST_NAME'e bakar
         "players": {},              # name -> {capital, portfolio[], decisions:{round: 'approve'/'reject'}}
         "created_at": time.time(),
     }
@@ -357,18 +358,21 @@ def merge_with_defaults(fetched):
     return base
 
 now = time.time()
-if st.session_state.remote_state is None or now - st.session_state.last_fetch > 2:
+if st.session_state.remote_state is None or now - st.session_state.last_fetch >= 4:
     fetched = remote_read()
     if fetched is not None:
         merged = merge_with_defaults(fetched)
         st.session_state.remote_state = merged
         st.session_state.last_fetch = now
-        # If the bin didn't have our keys yet, persist the proper structure now
-        if merged != fetched:
-            remote_write(merged)
+        st.session_state["_backend_error"] = None
     elif st.session_state.remote_state is None:
         st.error("Sunucuya bağlanılamadı. Lütfen sayfayı yenileyin.")
         st.stop()
+    else:
+        # Fetch failed but we have a cached state — show a subtle warning instead of
+        # silently looping forever on stale data (helps diagnose rate-limit issues).
+        err = st.session_state.get("_backend_error", "")
+        st.warning(f"⚠️ Sunucudan güncel veri alınamadı, önbellekteki veri gösteriliyor. ({err[:120]})")
 
 game = st.session_state.remote_state
 
@@ -396,8 +400,6 @@ if not st.session_state.player_name:
 
     if join and name_input.strip():
         name = name_input.strip()
-        if game["host"] is None:
-            game["host"] = name
         ensure_player(game, name)
         remote_write(game)
         st.session_state.player_name = name
@@ -409,7 +411,8 @@ if not st.session_state.player_name:
 
 player_name = st.session_state.player_name
 ensure_player(game, player_name)
-is_host = (game["host"] == player_name)
+is_host = (player_name == HOST_NAME)
+host_present = HOST_NAME in game["players"]
 
 # ═══════════════════════════════════════════════════════════════════════
 # HEADER
@@ -430,6 +433,23 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════
+# HOST PRESENCE GATE — Anıl K. oyunda değilse herkes lobi moduna döner
+# ═══════════════════════════════════════════════════════════════════════
+if not host_present and not is_host:
+    st.markdown(f"""
+    <div class='panel' style='max-width:480px;margin:3rem auto;text-align:center;padding:2.2rem;'>
+        <div class='panel-title' style='justify-content:center;'><span style='flex:none;'>Lobi</span></div>
+        <p style='font-family:Inter,sans-serif;font-size:14px;color:var(--slate);margin:0;'>
+            <b style='color:var(--cream);'>{HOST_NAME}</b> henüz oyuna katılmadı.<br>
+            Oyun, host giriş yaptığında devam edecek.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;font-family:\"Space Mono\",monospace;font-size:9px;letter-spacing:1.5px;color:var(--slate-dim);'>· otomatik yenileniyor ·</div>", unsafe_allow_html=True)
+    time.sleep(4)
+    st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════════
 # LOBBY (round 0 — waiting to start)
 # ═══════════════════════════════════════════════════════════════════════
 if game["round"] == 0:
@@ -438,7 +458,7 @@ if game["round"] == 0:
         st.markdown("<div class='panel'>", unsafe_allow_html=True)
         st.markdown("<div class='panel-title'>Lobi — Oyuncular Bekleniyor</div>", unsafe_allow_html=True)
         for p in game["players"]:
-            tag = " <span style='color:var(--gold);'>★ HOST</span>" if p == game["host"] else ""
+            tag = " <span style='color:var(--gold);'>★ HOST</span>" if p == HOST_NAME else ""
             st.markdown(f"<div style='font-family:Inter,sans-serif;font-size:14px;padding:7px 0;color:var(--cream);'>· {p}{tag}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
@@ -461,7 +481,7 @@ if game["round"] == 0:
                 else:
                     st.error("Oyun başlatılamadı — sunucuya yazılamadı. Lütfen tekrar deneyin.")
         else:
-            st.markdown("<div class='waiting-badge'>Host'un oyunu başlatması bekleniyor...</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='waiting-badge'>{HOST_NAME}'in oyunu başlatması bekleniyor...</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -619,7 +639,6 @@ else:
             latest = remote_read()
             latest = merge_with_defaults(latest) if latest is not None else game
             new_state = default_game_state()
-            new_state["host"] = latest["host"]
             for pname in latest["players"]:
                 ensure_player(new_state, pname)
             ok = remote_write(new_state)
@@ -634,5 +653,5 @@ else:
 # AUTO-REFRESH (polling) — keeps everyone's screen in sync
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown("<div style='text-align:center;padding:1.4rem 0 0.4rem;font-family:\"Space Mono\",monospace;font-size:9px;letter-spacing:1.5px;color:var(--slate-dim);'>· otomatik yenileniyor ·</div>", unsafe_allow_html=True)
-time.sleep(2.5)
+time.sleep(4)
 st.rerun()
